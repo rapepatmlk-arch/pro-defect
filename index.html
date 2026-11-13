@@ -124,7 +124,7 @@ textarea{min-height:84px;resize:vertical}
 </head>
 <body>
 <div class="top">
-  <div class="logos"><img src="logo.jpg" alt="PRO-CON"><img class="round" src="logo-wsk.png" alt="วิศวกรพล" onerror="this.remove()"></div>
+  <div class="logos"><img src="logo.jpg" alt="PRO-CON"></div>
   <div><h1 id="topTitle">บันทึกงานแก้ไข (Defect)</h1><small id="topSub">PRO CONSTRUCTION & DESIGN</small></div>
   <div class="sp"></div>
   <button class="tbtn" id="backBtn" style="display:none">‹ โครงการทั้งหมด</button>
@@ -142,7 +142,7 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 "use strict";
-const APP_VER="1.3";
+const APP_VER="1.4";
 const LOGO_PROCON="logo.jpg", LOGO_WSK="logo-wsk.png";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
