@@ -503,7 +503,8 @@ function wrap(ctx,text,maxW){
   }
   return lines;
 }
-function txt(ctx,s,x,y,size,w=400,color="#1b2133",align="left"){font(ctx,size,w);ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline="top";ctx.fillText(s,x*PX,y*PX)}
+// align by measuring ourselves: iPad Safari ignored ctx.textAlign (centered/right text ran off the page)
+function txt(ctx,s,x,y,size,w=400,color="#1b2133",align="left"){font(ctx,size,w);ctx.fillStyle=color;ctx.textAlign="left";ctx.textBaseline="top";let px=x*PX;if(align!=="left"){const tw=ctx.measureText(s).width;px-=align==="center"?tw/2:tw}ctx.fillText(s,px,y*PX)}
 function rect(ctx,x,y,w,h,fill,stroke,lw=0.25){ctx.beginPath();ctx.rect(x*PX,y*PX,w*PX,h*PX);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw*PX;ctx.stroke()}}
 function drawLogo(ctx,img,x,y,h){if(!img)return 0;const w=h*img.naturalWidth/img.naturalHeight;ctx.drawImage(img,x*PX,y*PX,w*PX,h*PX);return w}
 const logoW=(img,h)=>img?h*img.naturalWidth/img.naturalHeight:0;
