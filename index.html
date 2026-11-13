@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="Cache-Control" content="no-cache">
 <title>Defect Report – PRO-CON</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
@@ -141,6 +142,7 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 "use strict";
+const APP_VER="1.3";
 const LOGO_PROCON="logo.jpg", LOGO_WSK="logo-wsk.png";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -290,7 +292,7 @@ function render(){
 function renderHome(){
   const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>`<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เจ้าของ: ${esc(p.owner||"-")}</p>${p.supervisor?`<p>ผู้ควบคุมงาน : ${esc(p.supervisor)}</p>`:""}<div class="stat"><span class="chip all">${p.count||0} รายการ</span><span class="chip ok">แล้วเสร็จ ${p.done||0}</span></div></button>`).join("");
   $("#main").innerHTML=banner()+(S.loaded?"":`<div class="banner" id="slow" style="display:none">กำลังรอข้อมูลจากคลาวด์… ถ้าสัญญาณอินเทอร์เน็ตไม่ดี ข้อมูลอาจยังไม่ขึ้น</div>`)+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>${store.kind==="local"?`<div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">⬇︎ สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">⬆︎ นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>`:""}
-  <p class="hint" style="margin-top:22px">วิธีใช้: เปิดโครงการ → กด “ถ่ายรูปก่อนแก้ไข” → พูดชื่อรายการ/รายละเอียด → เมื่อแก้เสร็จ กด “ถ่ายหลังแก้ไข” ที่รายการนั้น → กด “📄 ออก PDF”</p>`;
+  <p class="hint" style="margin-top:22px">วิธีใช้: เปิดโครงการ → กด “ถ่ายรูปก่อนแก้ไข” → พูดชื่อรายการ/รายละเอียด → เมื่อแก้เสร็จ กด “ถ่ายหลังแก้ไข” ที่รายการนั้น → กด “📄 ออก PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
   $("#newProj").onclick=()=>editProject(null);
   if($("#bkOut")){$("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)}}
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
@@ -628,7 +630,7 @@ async function buildPdf(p,o,prog){
     }
     // footer
     rect(ctx,M,PH-10.5,PW-2*M,0.3,th.acc);
-    txt(ctx,"PRO CONSTRUCTION & DESIGN CO.,LTD.  •  "+(p.name||""),M,PH-9,2.8,400,"#777");
+    txt(ctx,"PRO CONSTRUCTION & DESIGN CO.,LTD.  •  "+(p.name||"")+"  •  v"+APP_VER,M,PH-9,2.8,400,"#777");
     txt(ctx,`หน้า ${pi+1} / ${total}`,PW-M,PH-9,2.9,600,"#555","right");
     const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",0.86));
     jpgs.push(new Uint8Array(await blob.arrayBuffer()));previews.push(URL.createObjectURL(blob));
