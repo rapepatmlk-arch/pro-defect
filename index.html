@@ -28,6 +28,8 @@ input,textarea,select{font-family:inherit;font-size:17px}
 .tbtn{background:#ffffff22;color:#fff;border:1px solid #ffffff44;border-radius:10px;padding:8px 14px}
 .wrap{max-width:1200px;margin:0 auto;padding:16px 16px 120px}
 .banner{background:#fff6d9;border:1px solid #f0d78a;color:#7a5a00;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:15px}
+.banner svg{vertical-align:-3px;margin-right:4px}
+.ad svg{vertical-align:-2px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
 .pcard{background:var(--card);border-radius:16px;padding:18px;border:1px solid var(--line);box-shadow:0 2px 6px #0000000a;text-align:left}
 .pcard h3{margin:0 0 6px;font-size:19px;color:var(--navy)}
@@ -46,7 +48,7 @@ input,textarea,select{font-family:inherit;font-size:17px}
 .grp{background:#e8ecf6;border-left:6px solid var(--navy);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:700;color:var(--navy)}
 .grp .n{min-width:34px}
 .grp .t{flex:1}
-.ibtn{border:none;background:#fff;border-radius:8px;padding:6px 12px;color:var(--navy);border:1px solid var(--line)}
+.ibtn{display:inline-flex;align-items:center;gap:6px;border:none;background:#fff;border-radius:8px;padding:6px 12px;color:var(--navy);border:1px solid var(--line)}
 .item{background:#fff;border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:62px 1fr 190px 190px;gap:12px;padding:12px;align-items:start}
 .item .no{font-weight:700;color:var(--navy);font-size:18px;text-align:center;padding-top:4px}
 .item .tt{font-weight:700;font-size:17px}
@@ -129,7 +131,7 @@ textarea{min-height:84px;resize:vertical}
   <div class="sp"></div>
   <button class="tbtn" id="backBtn" style="display:none">‹ โครงการทั้งหมด</button>
 </div>
-<div class="wrap" id="main"><div class="empty-state"><div class="big">⏳</div>กำลังเปิดแอป…</div></div>
+<div class="wrap" id="main"><div class="empty-state">กำลังเปิดแอป…</div></div>
 <div class="bar" id="bar" style="display:none">
   <button class="btn pri big" id="shootBefore"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg> ถ่ายรูปก่อนแก้ไข</button>
   <button class="btn" id="libBefore"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg> เลือกจากคลังรูป</button>
@@ -142,7 +144,20 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 "use strict";
-const APP_VER="1.6";
+const APP_VER="1.7";
+const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICO={
+  gear:svgI('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  pen:svgI('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+  down:svgI('<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/>'),
+  up:svgI('<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 19h14"/>'),
+  phone:svgI('<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/>'),
+  info:svgI('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>'),
+  chevUp:svgI('<path d="m6 15 6-6 6 6"/>',20),
+  chevDn:svgI('<path d="m6 9 6 6 6-6"/>',20),
+  check:svgI('<path d="M20 6 9 17l-5-5"/>',15),
+  trash:svgI('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>'),
+};
 const LOGO_PROCON="logo.jpg", LOGO_WSK="logo-wsk.png";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -283,7 +298,7 @@ function setTop(){
   $("#topSub").textContent=p?"บันทึกงานแก้ไข (Defect)":"PRO CONSTRUCTION & DESIGN";
   $("#backBtn").style.display=p?"":"none";$("#bar").style.display=p?"flex":"none";
 }
-function banner(){if(!store||store.kind!=="local")return"";return STANDALONE?`<div class="banner">📱 ข้อมูลและรูปเก็บไว้ในเครื่องนี้ — แนะนำกด แชร์ → “เพิ่มไปยังหน้าจอโฮม” แล้วเปิดจากไอคอนทุกครั้ง และกด “สำรองข้อมูล” เป็นระยะ</div>`:`<div class="banner">⚠️ ตอนนี้ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น — เปิดลิงก์ในแอป Claude ที่ล็อกอินแล้ว เพื่อให้ข้อมูลเก็บบนคลาวด์</div>`}
+function banner(){if(!store||store.kind!=="local")return"";return STANDALONE?`<div class="banner">${ICO.phone} ข้อมูลและรูปเก็บไว้ในเครื่องนี้ — แนะนำกด แชร์ → “เพิ่มไปยังหน้าจอโฮม” แล้วเปิดจากไอคอนทุกครั้ง และกด “สำรองข้อมูล” เป็นระยะ</div>`:`<div class="banner">${ICO.info} ตอนนี้ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น — เปิดลิงก์ในแอป Claude ที่ล็อกอินแล้ว เพื่อให้ข้อมูลเก็บบนคลาวด์</div>`}
 function render(){
   setTop();
   if(!S.pid)return renderHome();
@@ -291,7 +306,7 @@ function render(){
 }
 function renderHome(){
   const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>`<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เจ้าของ: ${esc(p.owner||"-")}</p>${p.supervisor?`<p>ผู้ควบคุมงาน : ${esc(p.supervisor)}</p>`:""}<div class="stat"><span class="chip all">${p.count||0} รายการ</span><span class="chip ok">แล้วเสร็จ ${p.done||0}</span></div></button>`).join("");
-  $("#main").innerHTML=banner()+(S.loaded?"":`<div class="banner" id="slow" style="display:none">กำลังรอข้อมูลจากคลาวด์… ถ้าสัญญาณอินเทอร์เน็ตไม่ดี ข้อมูลอาจยังไม่ขึ้น</div>`)+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>${store.kind==="local"?`<div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">⬇︎ สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">⬆︎ นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>`:""}
+  $("#main").innerHTML=banner()+(S.loaded?"":`<div class="banner" id="slow" style="display:none">กำลังรอข้อมูลจากคลาวด์… ถ้าสัญญาณอินเทอร์เน็ตไม่ดี ข้อมูลอาจยังไม่ขึ้น</div>`)+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>${store.kind==="local"?`<div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">${ICO.down} สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">${ICO.up} นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>`:""}
   <p class="hint" style="margin-top:22px">วิธีใช้: เปิดโครงการ → กด “ถ่ายรูปก่อนแก้ไข” → พูดชื่อรายการ/รายละเอียด → เมื่อแก้เสร็จ กด “ถ่ายหลังแก้ไข” ที่รายการนั้น → กด “ออก PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
   $("#newProj").onclick=()=>editProject(null);
   if($("#bkOut")){$("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)}}
@@ -310,17 +325,17 @@ function photoGrid(ids,label){
   return `<span class="lab">${label}${ids.length>1?" ("+ids.length+")":""}</span><div class="imgs ${show.length===1?"one":""}">${show.map(i=>`<img data-ph="${esc(i)}" data-view="${esc(i)}">`).join("")}</div>`;
 }
 function renderProject(){
-  const p=proj();if(!p){$("#main").innerHTML=`<div class="empty-state"><div class="big">⏳</div>กำลังโหลดโครงการ…</div>`;return}
+  const p=proj();if(!p){$("#main").innerHTML=`<div class="empty-state">กำลังโหลดโครงการ…</div>`;return}
   const rows=numbered();const items=rows.filter(r=>r.kind!=="group");
   const nd=items.filter(isDone).length;
   const f=S.filter;
-  let html=banner()+`<div class="phead"><div class="info"><div><b>Project</b> ${esc(p.project)}</div><div><b>Owner</b> ${esc(p.owner)}</div><div><b>Consultant</b> ${esc(p.consultant)}</div><div><b>Construction</b> ${esc(p.contractor)}</div></div><button class="ibtn" id="editProj">⚙️ แก้ไขข้อมูลโครงการ</button></div>
+  let html=banner()+`<div class="phead"><div class="info"><div><b>Project</b> ${esc(p.project)}</div><div><b>Owner</b> ${esc(p.owner)}</div><div><b>Consultant</b> ${esc(p.consultant)}</div><div><b>Construction</b> ${esc(p.contractor)}</div></div><button class="ibtn" id="editProj">${ICO.gear} แก้ไขข้อมูลโครงการ</button></div>
   <div class="tabs"><button data-f="all" class="${f==="all"?"on":""}">ทั้งหมด ${items.length}</button><button data-f="wait" class="${f==="wait"?"on":""}">รอแก้ไข ${items.length-nd}</button><button data-f="done" class="${f==="done"?"on":""}">แก้ไขแล้ว ${nd}</button></div><div class="list">`;
   if(!rows.length)html+=`<div class="empty-state"><div class="big"><svg class="ico" viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg></div>ยังไม่มีรายการ<br>กด “ถ่ายรูปก่อนแก้ไข” ด้านล่างเพื่อเริ่มบันทึก<br><span class="hint">(ถ้าต้องการแบ่งหมวด เช่น “งานชั้นดาดฟ้า” กด “＋ หมวดงาน” ก่อน)</span></div>`;
   for(const r of rows){
-    if(r.kind==="group"){html+=`<div class="grp"><span class="n">${r.no}</span><span class="t">${esc(r.title||"(หมวดงาน)")}</span><button class="ibtn" data-edit="${r.id}">แก้ไข</button></div>`;continue}
+    if(r.kind==="group"){html+=`<div class="grp"><span class="n">${r.no}</span><span class="t">${esc(r.title||"(หมวดงาน)")}</span><button class="ibtn" data-edit="${r.id}">${ICO.pen} แก้ไข</button></div>`;continue}
     const d=isDone(r);if(f==="wait"&&d||f==="done"&&!d)continue;
-    html+=`<div class="item"><div class="no">${r.no}</div><div class="body" data-edit="${r.id}" style="cursor:pointer"><div class="tt">${esc(r.title||"(ยังไม่ระบุรายการ — แตะเพื่อพิมพ์)")}</div>${r.detail?`<div class="dd">${esc(r.detail)}</div>`:""}${r.afterDetail?`<div class="ad">✔ ${esc(r.afterDetail)}</div>`:""}<div class="meta">${d?`<span class="chip ok">แก้ไขแล้ว${r.doneDate?" "+thDate(r.doneDate):""}</span>`:`<span class="chip wait">รอแก้ไข</span>`}${r.remark?`<span class="chip all">${esc(r.remark)}</span>`:""}<button class="ibtn" data-edit="${r.id}">✏️ แก้ไข</button></div></div>
+    html+=`<div class="item"><div class="no">${r.no}</div><div class="body" data-edit="${r.id}" style="cursor:pointer"><div class="tt">${esc(r.title||"(ยังไม่ระบุรายการ — แตะเพื่อพิมพ์)")}</div>${r.detail?`<div class="dd">${esc(r.detail)}</div>`:""}${r.afterDetail?`<div class="ad">${ICO.check} ${esc(r.afterDetail)}</div>`:""}<div class="meta">${d?`<span class="chip ok">แก้ไขแล้ว${r.doneDate?" "+thDate(r.doneDate):""}</span>`:`<span class="chip wait">รอแก้ไข</span>`}${r.remark?`<span class="chip all">${esc(r.remark)}</span>`:""}<button class="ibtn" data-edit="${r.id}">${ICO.pen} แก้ไข</button></div></div>
     <div class="ph b ${r.before?.length?"":"empty"}">${r.before?.length?photoGrid(r.before,"ก่อน"):"ไม่มีรูปก่อนแก้ไข"}</div>
     <div class="ph a">${r.after?.length?photoGrid(r.after,"หลัง"):`<button class="shoot" data-after="${r.id}"><span class="shoot-ic"><svg class="ico" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg></span>ถ่ายหลังแก้ไข</button>`}</div></div>`;
   }
@@ -347,7 +362,7 @@ function editProject(p){
    ${micField("pCons","Consultant / ที่ปรึกษา",p.consultant,false)}
    ${micField("pCont","Construction / ผู้รับจ้าง",p.contractor,false)}
    ${micField("pSup","ผู้ควบคุมงาน",p.supervisor??"บริษัท วิศวกรพล จำกัด",false)}
-   <div class="acts">${n?"":`<button class="btn del" id="pDel">ลบโครงการ</button>`}<span class="sp"></span><button class="btn" id="pCancel">ยกเลิก</button><button class="btn pri" id="pSave">บันทึก</button></div>`);
+   <div class="acts">${n?"":`<button class="btn del" id="pDel">${ICO.trash} ลบโครงการ</button>`}<span class="sp"></span><button class="btn" id="pCancel">ยกเลิก</button><button class="btn pri" id="pSave">บันทึก</button></div>`);
   sh.querySelector("#pCancel").onclick=closeSheet;
   sh.querySelector("#pSave").onclick=async()=>{
     Object.assign(p,{name:$("#pName").value.trim()||$("#pProject").value.trim()||"โครงการใหม่",docTitle:$("#pTitle").value.trim(),project:$("#pProject").value.trim(),owner:$("#pOwner").value.trim(),consultant:$("#pCons").value.trim(),contractor:$("#pCont").value.trim(),supervisor:$("#pSup").value.trim(),updatedAt:Date.now()});
@@ -384,7 +399,7 @@ function editGroup(g){
   const n=!g;g=g?clone(g):{id:uid(),kind:"group",order:maxOrder()+1,title:"",createdAt:Date.now()};
   const sh=openSheet(`<h2>${n?"เพิ่มหมวดงาน":"แก้ไขหมวดงาน"}</h2>${micField("gTitle","ชื่อหมวดงาน",g.title,false,"เช่น เก็บความเรียบร้อยชั้นดาดฟ้า")}
   <p class="hint">รายการที่ถ่ายต่อจากนี้จะอยู่ใต้หมวดนี้และได้เลขลำดับ 1.1, 1.2 … อัตโนมัติ</p>
-  <div class="acts">${n?"":`<button class="btn del" id="gDel">ลบหมวด</button><button class="btn" id="gUp">▲</button><button class="btn" id="gDn">▼</button>`}<span class="sp"></span><button class="btn" id="gC">ยกเลิก</button><button class="btn pri" id="gS">บันทึก</button></div>`);
+  <div class="acts">${n?"":`<button class="btn del" id="gDel">${ICO.trash} ลบหมวด</button><button class="btn" id="gUp" title="เลื่อนขึ้น">${ICO.chevUp}</button><button class="btn" id="gDn" title="เลื่อนลง">${ICO.chevDn}</button>`}<span class="sp"></span><button class="btn" id="gC">ยกเลิก</button><button class="btn pri" id="gS">บันทึก</button></div>`);
   sh.querySelector("#gC").onclick=closeSheet;
   sh.querySelector("#gS").onclick=async()=>{g.title=$("#gTitle").value.trim();try{await saveItem(g);closeSheet()}catch(e){toast("บันทึกไม่สำเร็จ")}};
   if(!n){sh.querySelector("#gDel").onclick=async()=>{if(!await ask("ลบหมวดนี้? (รายการในหมวดจะยังอยู่ และไปต่อท้ายหมวดก่อนหน้า)","ลบ"))return;await store.deleteItem(S.pid,g.id);S.items=S.items.filter(i=>i.id!==g.id);closeSheet();touchProject()};
@@ -415,7 +430,7 @@ function editItem(id,focus){
    ${micField("iAfter","รายละเอียดหลังแก้ไข",it.afterDetail,true,"แก้ไขอย่างไร / วัสดุที่ใช้")}
    <div class="row"><div class="fld"><label>วันที่แล้วเสร็จ</label><input type="date" id="iDone" value="${esc(it.doneDate)}"></div>
    ${micField("iRemark","หมายเหตุ",it.remark,false,"เช่น สั่งของแล้ว")}</div></div>
-   <div class="acts"><button class="btn del" id="iDel">ลบ</button><button class="btn" id="iUp">▲</button><button class="btn" id="iDn">▼</button><span class="sp"></span><button class="btn" id="iC">ยกเลิก</button><button class="btn pri" id="iS">บันทึก</button></div>`);
+   <div class="acts"><button class="btn del" id="iDel">${ICO.trash} ลบ</button><button class="btn" id="iUp" title="เลื่อนขึ้น">${ICO.chevUp}</button><button class="btn" id="iDn" title="เลื่อนลง">${ICO.chevDn}</button><span class="sp"></span><button class="btn" id="iC">ยกเลิก</button><button class="btn pri" id="iS">บันทึก</button></div>`);
   const redraw=()=>{sh.querySelector("#pb").innerHTML=photosHtml(it.before,"before");sh.querySelector("#pa").innerHTML=photosHtml(it.after,"after");bindPh();hydrate(sh)};
   function bindPh(){
     sh.querySelectorAll("[data-view]").forEach(i=>i.onclick=()=>viewPhoto(i.dataset.view));
