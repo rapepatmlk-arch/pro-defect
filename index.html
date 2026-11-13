@@ -134,7 +134,7 @@ textarea{min-height:84px;resize:vertical}
   <button class="btn pri big" id="shootBefore"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg> ถ่ายรูปก่อนแก้ไข</button>
   <button class="btn" id="libBefore"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg> เลือกจากคลังรูป</button>
   <button class="btn" id="addGroup">＋ หมวดงาน</button>
-  <button class="btn gold" id="pdfBtn">📄 ออก PDF</button>
+  <button class="btn gold" id="pdfBtn"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg> ออก PDF</button>
 </div>
 <input type="file" id="camIn" accept="image/*" capture="environment" hidden>
 <input type="file" id="libIn" accept="image/*" multiple hidden>
@@ -142,7 +142,7 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 "use strict";
-const APP_VER="1.4";
+const APP_VER="1.5";
 const LOGO_PROCON="logo.jpg", LOGO_WSK="logo-wsk.png";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -292,7 +292,7 @@ function render(){
 function renderHome(){
   const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>`<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เจ้าของ: ${esc(p.owner||"-")}</p>${p.supervisor?`<p>ผู้ควบคุมงาน : ${esc(p.supervisor)}</p>`:""}<div class="stat"><span class="chip all">${p.count||0} รายการ</span><span class="chip ok">แล้วเสร็จ ${p.done||0}</span></div></button>`).join("");
   $("#main").innerHTML=banner()+(S.loaded?"":`<div class="banner" id="slow" style="display:none">กำลังรอข้อมูลจากคลาวด์… ถ้าสัญญาณอินเทอร์เน็ตไม่ดี ข้อมูลอาจยังไม่ขึ้น</div>`)+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>${store.kind==="local"?`<div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">⬇︎ สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">⬆︎ นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>`:""}
-  <p class="hint" style="margin-top:22px">วิธีใช้: เปิดโครงการ → กด “ถ่ายรูปก่อนแก้ไข” → พูดชื่อรายการ/รายละเอียด → เมื่อแก้เสร็จ กด “ถ่ายหลังแก้ไข” ที่รายการนั้น → กด “📄 ออก PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
+  <p class="hint" style="margin-top:22px">วิธีใช้: เปิดโครงการ → กด “ถ่ายรูปก่อนแก้ไข” → พูดชื่อรายการ/รายละเอียด → เมื่อแก้เสร็จ กด “ถ่ายหลังแก้ไข” ที่รายการนั้น → กด “ออก PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
   $("#newProj").onclick=()=>editProject(null);
   if($("#bkOut")){$("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)}}
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
