@@ -123,7 +123,7 @@ textarea{min-height:84px;resize:vertical}
 </head>
 <body>
 <div class="top">
-  <div class="logos"><img src="logo.jpg" alt="PRO-CON"><img class="round" style="display:none" src="logo-wsk.png" alt="วิศวกรพล" onerror="this.remove()"></div>
+  <div class="logos"><img src="logo.jpg" alt="PRO-CON"><img class="round" src="logo-wsk.png" alt="วิศวกรพล" onerror="this.remove()"></div>
   <div><h1 id="topTitle">บันทึกงานแก้ไข (Defect)</h1><small id="topSub">PRO CONSTRUCTION & DESIGN</small></div>
   <div class="sp"></div>
   <button class="tbtn" id="backBtn" style="display:none">‹ โครงการทั้งหมด</button>
@@ -131,7 +131,7 @@ textarea{min-height:84px;resize:vertical}
 <div class="wrap" id="main"><div class="empty-state"><div class="big">⏳</div>กำลังเปิดแอป…</div></div>
 <div class="bar" id="bar" style="display:none">
   <button class="btn pri big" id="shootBefore"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg> ถ่ายรูปก่อนแก้ไข</button>
-  <button class="btn" id="libBefore">🖼️ เลือกจากคลังรูป</button>
+  <button class="btn" id="libBefore"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg> เลือกจากคลังรูป</button>
   <button class="btn" id="addGroup">＋ หมวดงาน</button>
   <button class="btn gold" id="pdfBtn">📄 ออก PDF</button>
 </div>
@@ -312,7 +312,7 @@ function renderProject(){
   const rows=numbered();const items=rows.filter(r=>r.kind!=="group");
   const nd=items.filter(isDone).length;
   const f=S.filter;
-  let html=banner()+`<div class="phead"><div class="info"><div><b>Project</b> ${esc(p.project)}</div><div><b>Owner</b> ${esc(p.owner)}</div><div><b>Consultant</b> ${esc(p.consultant)}</div><div><b>Construction</b> ${esc(p.contractor)}</div>${p.supervisor?`<div><b>ผู้ควบคุมงาน</b> ${esc(p.supervisor)}</div>`:""}</div><button class="ibtn" id="editProj">⚙️ แก้ไขข้อมูลโครงการ</button></div>
+  let html=banner()+`<div class="phead"><div class="info"><div><b>Project</b> ${esc(p.project)}</div><div><b>Owner</b> ${esc(p.owner)}</div><div><b>Consultant</b> ${esc(p.consultant)}</div><div><b>Construction</b> ${esc(p.contractor)}</div></div><button class="ibtn" id="editProj">⚙️ แก้ไขข้อมูลโครงการ</button></div>
   <div class="tabs"><button data-f="all" class="${f==="all"?"on":""}">ทั้งหมด ${items.length}</button><button data-f="wait" class="${f==="wait"?"on":""}">รอแก้ไข ${items.length-nd}</button><button data-f="done" class="${f==="done"?"on":""}">แก้ไขแล้ว ${nd}</button></div><div class="list">`;
   if(!rows.length)html+=`<div class="empty-state"><div class="big"><svg class="ico" viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg></div>ยังไม่มีรายการ<br>กด “ถ่ายรูปก่อนแก้ไข” ด้านล่างเพื่อเริ่มบันทึก<br><span class="hint">(ถ้าต้องการแบ่งหมวด เช่น “งานชั้นดาดฟ้า” กด “＋ หมวดงาน” ก่อน)</span></div>`;
   for(const r of rows){
@@ -403,7 +403,7 @@ function editItem(id,focus){
   const src=S.items.find(i=>i.id===id);if(!src)return;if(src.kind==="group")return editGroup(src);
   const it=clone(src);const no=numbered().find(r=>r.id===id)?.no||"";
   const groups=sorted().filter(r=>r.kind==="group");const cur=groupOf(it);
-  const photosHtml=(arr,key)=>arr.map(pid=>`<div class="p"><img data-ph="${esc(pid)}" data-view="${esc(pid)}"><button class="x" data-rm="${key}:${esc(pid)}">✕</button></div>`).join("")+`<button class="addp" data-add="${key}:1"><span class="addp-ic"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg></span>ถ่ายรูป</button><button class="addp" data-add="${key}:0"><span style="font-size:30px;line-height:1.2">🖼️</span>คลังรูป</button>`;
+  const photosHtml=(arr,key)=>arr.map(pid=>`<div class="p"><img data-ph="${esc(pid)}" data-view="${esc(pid)}"><button class="x" data-rm="${key}:${esc(pid)}">✕</button></div>`).join("")+`<button class="addp" data-add="${key}:1"><span class="addp-ic"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg></span>ถ่ายรูป</button><button class="addp" data-add="${key}:0"><span class="addp-ic"><svg class="ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg></span>คลังรูป</button>`;
   const sh=openSheet(`<h2><span class="chip all" style="font-size:16px">${no}</span> รายการแก้ไข</h2>
    ${groups.length?`<div class="fld"><label>หมวดงาน</label><select id="iGroup"><option value="">— ไม่มีหมวด —</option>${groups.map(g=>`<option value="${g.id}" ${cur&&cur.id===g.id?"selected":""}>${esc(g.title)}</option>`).join("")}</select></div>`:""}
    ${micField("iTitle","รายการ",it.title,false,"เช่น แก้ไข Support ไม่แข็งแรง")}
@@ -552,7 +552,7 @@ async function buildPdf(p,o,prog){
     rows.push(r);
   }
   // layout
-  const FIRST_TOP=M+55, NEXT_TOP=M+20, HEAD_H=8, BOTTOM=PH-14, GROUP_H=8;
+  const FIRST_TOP=M+50, NEXT_TOP=M+20, HEAD_H=8, BOTTOM=PH-14, GROUP_H=8;
   const pages=[];let cur=null,y=0;
   const newPage=()=>{cur={rows:[]};pages.push(cur);y=(pages.length===1?FIRST_TOP:NEXT_TOP)+HEAD_H};
   newPage();
@@ -580,7 +580,7 @@ async function buildPdf(p,o,prog){
       txt(ctx,o.title||"งานแก้ไขความเรียบร้อย (Defection)",PW/2,M+4,6,700,th.h,"center");
       if(o.rev)txt(ctx,o.rev,PW/2,M+13,3.6,600,th.acc,"center");
       rect(ctx,M,M+23,PW-2*M,0.6,th.acc);
-      const info=[["Project",p.project],["Owner",p.owner],["Consultant",p.consultant],["Construction",p.contractor],["ผู้ควบคุมงาน",p.supervisor]];
+      const info=[["Project",p.project],["Owner",p.owner],["Consultant",p.consultant],["Construction",p.contractor]];
       info.forEach(([k,v],i)=>{txt(ctx,k,M+1,M+26+i*5.4,3.6,700,th.h);txt(ctx,": "+(v||"-"),M+27,M+26+i*5.4,3.6,400)});
       txt(ctx,"วันที่ "+thDate(o.date),PW-M-1,M+26,3.6,600,"#1b2133","right");
     }else{
