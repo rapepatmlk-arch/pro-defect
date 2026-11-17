@@ -26,6 +26,9 @@ input,textarea,select{font-family:inherit;font-size:17px}
 .top small{display:block;font-weight:400;opacity:.8;font-size:13px}
 .top .sp{flex:1}
 .tbtn{background:#ffffff22;color:#fff;border:1px solid #ffffff44;border-radius:10px;padding:8px 14px}
+.sbadge{display:inline-flex;align-items:center;gap:4px;font-size:13px;background:#ffffff1a;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.login{max-width:460px;margin:30px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+.login h3{margin:0 0 10px;color:var(--navy);font-size:20px;display:flex;align-items:center;gap:8px}
 .wrap{max-width:1200px;margin:0 auto;padding:16px 16px 120px}
 .banner{background:#fff6d9;border:1px solid #f0d78a;color:#7a5a00;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:15px}
 .banner svg{vertical-align:-3px;margin-right:4px}
@@ -129,7 +132,9 @@ textarea{min-height:84px;resize:vertical}
   <div class="logos"><img src="logo.jpg" alt="PRO-CON"></div>
   <div><h1 id="topTitle">บันทึกงานแก้ไข (Defect)</h1><small id="topSub">PRO CONSTRUCTION & DESIGN</small></div>
   <div class="sp"></div>
+  <span class="sbadge" id="syncBadge" style="display:none"></span>
   <button class="tbtn" id="backBtn" style="display:none">‹ โครงการทั้งหมด</button>
+  <button class="tbtn" id="logoutBtn" style="display:none">ออกจากระบบ</button>
 </div>
 <div class="wrap" id="main"><div class="empty-state">กำลังเปิดแอป…</div></div>
 <div class="bar" id="bar" style="display:none">
@@ -142,9 +147,13 @@ textarea{min-height:84px;resize:vertical}
 <input type="file" id="libIn" accept="image/*" multiple hidden>
 <div id="layer"></div>
 
+<script src="lib/firebase-app-compat.js"></script>
+<script src="lib/firebase-auth-compat.js"></script>
+<script src="lib/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="1.7";
+const APP_VER="2.0";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICO={
   gear:svgI('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
@@ -169,19 +178,40 @@ const clone=o=>JSON.parse(JSON.stringify(o));
 let toastT;
 function toast(msg,ms=2600){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",ms)}
 
-/* ---------------- storage: cloud (db + assets) ---------------- */
-const Cloud={
-  kind:"cloud",
-  init(db,assets){this.db=db;this.assets=assets},
-  listenProjects(cb){return this.db.collection("projects").onSnapshot(s=>cb(s.docs.map(d=>({id:d.id,...clone(d.data())})),s.metadata.fromCache),e=>{cb(null);toast("โหลดข้อมูลไม่ได้ ("+e.code+")")})},
-  listenItems(pid,cb){return this.db.collection("projects/"+pid+"/items").onSnapshot(s=>cb(s.docs.map(d=>({id:d.id,...clone(d.data())}))),e=>toast("โหลดรายการไม่ได้ ("+e.code+")"))},
-  async saveProject(p){const {id,...r}=p;await this.db.doc("projects/"+id).set(r)},
-  async deleteProject(id,items){for(const it of items)await this.db.doc("projects/"+id+"/items/"+it.id).delete();await this.db.doc("projects/"+id).delete()},
-  async saveItem(pid,it){const {id,...r}=it;await this.db.doc("projects/"+pid+"/items/"+id).set(r)},
-  async deleteItem(pid,id){await this.db.doc("projects/"+pid+"/items/"+id).delete()},
-  async upload(blob){const r=await this.assets.upload(blob);return r.id},
-  async src(id){return "/_blob/"+id}
+/* ---------------- storage: Firebase cloud, shared by all iPads ----------------
+   Same Firebase project and staff accounts as the DC app (pro-dc). Defect data lives in
+   its own collections: df_projects, df_items (field pid), df_photos (JPEG as Bytes <=900KB).
+   Writes update the local cache at once and are queued by Firestore while offline. */
+const ADMINS=["staff1@procon.app"];
+let USER=null;
+const isAdmin=()=>!store||store.kind!=="cloud"||(USER&&ADMINS.includes((USER.email||"").toLowerCase()));
+const FB={
+  kind:"cloud",pending:0,urls:new Map(),blobs:new Map(),
+  init(){this.fs=firebase.firestore()},
+  col(n){return this.fs.collection(n)},
+  track(p){this.pending++;syncBadge();p.catch(e=>{console.error(e);toast(e&&e.code==="permission-denied"?"ไม่มีสิทธิ์ทำรายการนี้ (เฉพาะแอดมิน) — ระบบย้อนข้อมูลกลับแล้ว":"บันทึกขึ้นคลาวด์ไม่สำเร็จ ("+(e&&e.code||e)+")",4000)}).finally(()=>{this.pending--;syncBadge()})},
+  listenProjects(cb){return this.col("df_projects").onSnapshot(s=>cb(s.docs.map(d=>({...d.data(),id:d.id})),s.metadata.fromCache),e=>{console.error(e);cb(null);toast("โหลดข้อมูลไม่ได้ ("+(e.code||e)+")",4000)})},
+  listenItems(pid,cb){return this.col("df_items").where("pid","==",pid).onSnapshot(s=>cb(s.docs.map(d=>({...d.data(),id:d.id}))),e=>{console.error(e);toast("โหลดรายการไม่ได้ ("+(e.code||e)+")",4000)})},
+  async saveProject(p){const {id,...r}=clone(p);this.track(this.col("df_projects").doc(id).set(r))},
+  async deleteProject(id,items){
+    for(const it of items){for(const ph of [...(it.before||[]),...(it.after||[])])this.track(this.col("df_photos").doc(ph).delete());this.track(this.col("df_items").doc(it.id).delete())}
+    this.track(this.col("df_projects").doc(id).delete());
+  },
+  async saveItem(pid,it){const {id,...r}=clone(it);r.pid=pid;this.track(this.col("df_items").doc(id).set(r))},
+  async deleteItem(pid,id){this.track(this.col("df_items").doc(id).delete())},
+  async shrink(blob){let b=blob,sc=1;while(b.size>900000&&sc>0.3){const u=URL.createObjectURL(blob);try{const img=await loadImg(u);sc*=0.8;const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);c.getContext("2d").drawImage(img,0,0,c.width,c.height);b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.8))}finally{URL.revokeObjectURL(u)}}return b},
+  async putPhoto(id,blob){blob=await this.shrink(blob);this.blobs.set(id,blob);const bytes=new Uint8Array(await blob.arrayBuffer());
+    this.track(this.col("df_photos").doc(id).set({data:firebase.firestore.Blob.fromUint8Array(bytes),type:blob.type||"image/jpeg",size:bytes.length,at:Date.now(),by:(USER&&USER.email)||""}));return id},
+  async upload(blob){return this.putPhoto("ph_"+uid(),blob)},
+  async src(id){
+    if(this.urls.has(id))return this.urls.get(id);let b=this.blobs.get(id);
+    if(!b){const ref=this.col("df_photos").doc(id);let d=null;try{d=await ref.get({source:"cache"})}catch(e){}
+      if(!d||!d.exists){try{d=await ref.get()}catch(e){return""}}if(!d.exists)return"";const v=d.data();b=new Blob([v.data.toUint8Array()],{type:v.type||"image/jpeg"});this.blobs.set(id,b)}
+    const u=URL.createObjectURL(b);this.urls.set(id,u);return u}
 };
+function syncBadge(){const b=$("#syncBadge");if(!b)return;if(!store||store.kind!=="cloud"||!USER){b.style.display="none";return}b.style.display="";
+  const off=!navigator.onLine;b.innerHTML=FB.pending?`${ICO.up} รอส่ง ${FB.pending}${off?" (ออฟไลน์)":""}`:off?`${ICO.info} ออฟไลน์`:`${ICO.check} ซิงก์แล้ว`}
+addEventListener("online",syncBadge);addEventListener("offline",syncBadge);
 /* ---------------- storage: this device (IndexedDB) ---------------- */
 const Local={
   kind:"local",pl:new Set(),il:new Map(),urls:new Map(),mem:{projects:new Map(),items:new Map(),photos:new Map()},
@@ -199,6 +229,8 @@ const Local={
   async saveItem(pid,it){await this.put("items",{...clone(it),pid});this.emitI(pid)},
   async deleteItem(pid,id){await this.del("items",id);this.emitI(pid)},
   async upload(blob){const id="ph_"+uid();await this.put("photos",blob,id);return id},
+  async photoKeys(){if(!this.idb)return[...this.mem.photos.keys()];return await this.tx("photos","readonly",s=>s.getAllKeys())||[]},
+  async blob(id){if(!this.idb)return this.mem.photos.get(id);return await this.tx("photos","readonly",s=>s.get(id))},
   async src(id){if(this.urls.has(id))return this.urls.get(id);let b;if(!this.idb)b=this.mem.photos.get(id);else b=await this.tx("photos","readonly",s=>s.get(id));if(!b)return"";const u=URL.createObjectURL(b);this.urls.set(id,u);return u}
 };
 
@@ -297,18 +329,21 @@ function setTop(){
   $("#topTitle").textContent=p?(p.name||"โครงการ"):"บันทึกงานแก้ไข (Defect)";
   $("#topSub").textContent=p?"บันทึกงานแก้ไข (Defect)":"PRO CONSTRUCTION & DESIGN";
   $("#backBtn").style.display=p?"":"none";$("#bar").style.display=p?"flex":"none";
+  $("#logoutBtn").style.display=(!p&&store&&store.kind==="cloud"&&USER)?"":"none";syncBadge();
 }
 function banner(){if(!store||store.kind!=="local")return"";return STANDALONE?`<div class="banner">${ICO.phone} ข้อมูลและรูปเก็บไว้ในเครื่องนี้ — แนะนำกด แชร์ → “เพิ่มไปยังหน้าจอโฮม” แล้วเปิดจากไอคอนทุกครั้ง และกด “สำรองข้อมูล” เป็นระยะ</div>`:`<div class="banner">${ICO.info} ตอนนี้ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น — เปิดลิงก์ในแอป Claude ที่ล็อกอินแล้ว เพื่อให้ข้อมูลเก็บบนคลาวด์</div>`}
 function render(){
   setTop();
+  if(store&&store.kind==="cloud"&&!USER)return renderLogin();
   if(!S.pid)return renderHome();
   renderProject();
 }
 function renderHome(){
   const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>`<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เจ้าของ: ${esc(p.owner||"-")}</p>${p.supervisor?`<p>ผู้ควบคุมงาน : ${esc(p.supervisor)}</p>`:""}<div class="stat"><span class="chip all">${p.count||0} รายการ</span><span class="chip ok">แล้วเสร็จ ${p.done||0}</span></div></button>`).join("");
-  $("#main").innerHTML=banner()+(S.loaded?"":`<div class="banner" id="slow" style="display:none">กำลังรอข้อมูลจากคลาวด์… ถ้าสัญญาณอินเทอร์เน็ตไม่ดี ข้อมูลอาจยังไม่ขึ้น</div>`)+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>${store.kind==="local"?`<div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">${ICO.down} สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">${ICO.up} นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>`:""}
+  $("#main").innerHTML=banner()+(S.loaded?"":`<div class="banner" id="slow" style="display:none">กำลังรอข้อมูลจากคลาวด์… ถ้าสัญญาณอินเทอร์เน็ตไม่ดี ข้อมูลอาจยังไม่ขึ้น</div>`)+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>${store.kind==="local"?`<div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">${ICO.down} สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">${ICO.up} นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>`:""}${store.kind==="cloud"&&S.migrateInfo?`<div class="banner" style="margin-top:18px">${ICO.info} iPad เครื่องนี้มีข้อมูลเดิมที่ยังไม่ได้ขึ้นคลาวด์ (${esc(S.migrateInfo)}) <button class="btn pri" id="migrate" style="margin-left:8px">${ICO.up} ย้ายขึ้นคลาวด์</button></div>`:""}
   <p class="hint" style="margin-top:22px">วิธีใช้: เปิดโครงการ → กด “ถ่ายรูปก่อนแก้ไข” → พูดชื่อรายการ/รายละเอียด → เมื่อแก้เสร็จ กด “ถ่ายหลังแก้ไข” ที่รายการนั้น → กด “ออก PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
   $("#newProj").onclick=()=>editProject(null);
+  if($("#migrate"))$("#migrate").onclick=migrateToCloud;
   if($("#bkOut")){$("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)}}
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
 }
@@ -368,7 +403,7 @@ function editProject(p){
     Object.assign(p,{name:$("#pName").value.trim()||$("#pProject").value.trim()||"โครงการใหม่",docTitle:$("#pTitle").value.trim(),project:$("#pProject").value.trim(),owner:$("#pOwner").value.trim(),consultant:$("#pCons").value.trim(),contractor:$("#pCont").value.trim(),supervisor:$("#pSup").value.trim(),updatedAt:Date.now()});
     try{await store.saveProject(p);closeSheet();if(n){const i=S.projects.findIndex(x=>x.id===p.id);if(i<0)S.projects.push(p);openProject(p.id)}}catch(e){toast("บันทึกไม่สำเร็จ ("+(e.code||e)+")")}
   };
-  if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!await ask(`ลบโครงการ “${p.name}” และรายการทั้งหมด? ย้อนกลับไม่ได้`,"ลบ"))return;try{await store.deleteProject(p.id,S.items);closeSheet();S.pid=null;render()}catch(e){toast("ลบไม่สำเร็จ")}};
+  if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!isAdmin()){toast("ลบโครงการได้เฉพาะแอดมิน",3000);return}if(!await ask(`ลบโครงการ “${p.name}” และรายการทั้งหมด? ย้อนกลับไม่ได้`,"ลบ"))return;try{await store.deleteProject(p.id,S.items);closeSheet();S.pid=null;render()}catch(e){toast("ลบไม่สำเร็จ")}};
 }
 
 /* ---------------- items ---------------- */
@@ -674,19 +709,69 @@ function makePdf(jpgs,w,h,title){
   const out=new Uint8Array(len);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out;
 }
 
+/* ---------------- login + moving old on-device data ---------------- */
+function renderLogin(msg){
+  $("#bar").style.display="none";
+  let last="";try{last=localStorage.getItem("dc-user")||""}catch(e){}
+  $("#main").innerHTML=`<div class="login"><h3>${svgI('<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',22)} เข้าสู่ระบบ</h3>
+   <p class="hint" style="margin-top:-4px">ใช้บัญชีเดียวกับแอปค่าแรง DC (เช่น staff2) — ข้อมูลจะซิงก์ร่วมกันทุก iPad</p>
+   <div class="fld"><label for="lgEmail">ชื่อผู้ใช้ (เช่น staff1)</label><input id="lgEmail" value="${esc(last)}" placeholder="พิมพ์ชื่อผู้ใช้ที่นี่" autocapitalize="off" autocorrect="off" autocomplete="username"></div>
+   <div class="fld"><label for="lgPass">รหัสผ่าน</label><input id="lgPass" type="password" autocomplete="current-password"></div>
+   <div class="hint" id="lgMsg" style="color:var(--red)">${esc(msg||"")}</div>
+   <div class="acts"><span class="sp"></span><button class="btn pri big" id="lgGo">เข้าสู่ระบบ</button></div></div>
+   <p class="hint" style="text-align:center">เวอร์ชัน ${APP_VER}</p>`;
+  const go=async()=>{let e=$("#lgEmail").value.trim().toLowerCase();if(e&&!e.includes("@"))e+="@procon.app";const pw=$("#lgPass").value;
+    if(!e){$("#lgMsg").textContent="กรุณาพิมพ์ชื่อผู้ใช้ในช่องแรก (เช่น staff1)";$("#lgEmail").focus();return}
+    if(!pw){$("#lgMsg").textContent="กรุณาใส่รหัสผ่าน";$("#lgPass").focus();return}
+    try{localStorage.setItem("dc-user",e.replace("@procon.app",""))}catch(_){}
+    $("#lgGo").disabled=true;$("#lgMsg").textContent="กำลังเข้าสู่ระบบ…";
+    try{await firebase.auth().signInWithEmailAndPassword(e,pw)}catch(err){$("#lgGo").disabled=false;const c=err&&err.code||"";
+      $("#lgMsg").textContent=/invalid|wrong-password|user-not-found/.test(c)?"ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง":c==="auth/network-request-failed"?"ไม่มีอินเทอร์เน็ต — การเข้าสู่ระบบครั้งแรกต้องต่อเน็ต":c==="auth/too-many-requests"?"ลองผิดหลายครั้ง กรุณารอสักครู่":"เข้าสู่ระบบไม่สำเร็จ ("+c+")"}};
+  $("#lgGo").onclick=go;$("#lgPass").onkeydown=e=>{if(e.key==="Enter")go()};
+}
+$("#logoutBtn").onclick=async()=>{if(FB.pending&&!(await ask(`ยังมีข้อมูลรอส่งขึ้นคลาวด์ ${FB.pending} รายการ — ออกจากระบบตอนนี้ข้อมูลอาจหาย ต่อเน็ตให้ซิงก์ก่อนดีกว่า`,"ออกเลย")))return;await firebase.auth().signOut()};
+async function localInfo(){
+  try{if(localStorage.getItem("df-migrated"))return""}catch(e){}
+  const p=(await Local.all("projects")).length,i=(await Local.all("items")).filter(x=>x.kind!=="group").length;
+  return p?`${p} โครงการ • ${i} รายการ`:"";
+}
+async function migrateToCloud(){
+  if(!await ask(`ย้ายข้อมูลเดิมใน iPad เครื่องนี้ (${S.migrateInfo}) ขึ้นคลาวด์ เพื่อให้ทุกเครื่องเห็น? (ข้อมูลในเครื่องยังอยู่)`,"ย้ายข้อมูล"))return;
+  try{
+    const keys=await Local.photoKeys();let n=0;
+    for(const k of keys){const b=await Local.blob(k);if(b)await FB.putPhoto(k,b);if(++n%5===0)toast(`กำลังส่งรูป ${n}/${keys.length}…`,20000)}
+    for(const p of await Local.all("projects"))await FB.saveProject({...p,updatedAt:Date.now()});
+    for(const it of await Local.all("items"))await FB.saveItem(it.pid,it);
+    try{localStorage.setItem("df-migrated","1")}catch(e){}S.migrateInfo="";render();
+    toast("ย้ายข้อมูลแล้ว — กำลังทยอยส่งขึ้นคลาวด์ (ดูสถานะมุมขวาบน)",5000);
+  }catch(e){console.error(e);toast("ย้ายข้อมูลไม่สำเร็จ: "+(e.message||e),5000)}
+}
+
 /* ---------------- boot ---------------- */
+function listenProjects(){
+  S.loaded=false;const slow=setTimeout(()=>{const s=$("#slow");if(s)s.style.display=""},10000);
+  return store.listenProjects((list,fromCache)=>{if(list===null){S.loaded=true;clearTimeout(slow);render();return}S.projects=list;if(!fromCache){S.loaded=true;clearTimeout(slow)}
+    if(S.pid&&!list.some(p=>p.id===S.pid)){if(S.unsubItems)S.unsubItems();S.unsubItems=null;S.pid=null}render()});
+}
 (async function boot(){
-  let db=null,assets=null;
   STANDALONE=!(window.claude&&typeof claude.use==="function");
-  if(!STANDALONE){
-    const safe=n=>claude.use(n).catch(()=>null);
-    [db,assets,dict,downloads]=await Promise.all([safe("db"),safe("assets"),safe("dictation"),safe("downloads")]);
-  }
-  if(db&&assets){store=Cloud;Cloud.init(db,assets)}else{store=Local;await Local.init();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}}
+  if(!STANDALONE){const safe=n=>claude.use(n).catch(()=>null);[dict,downloads]=await Promise.all([safe("dictation"),safe("downloads")])}
+  await Local.init();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
   setupDict();
-  const slow=setTimeout(()=>{const s=$("#slow");if(s)s.style.display=""},10000);
-  store.listenProjects((list,fromCache)=>{if(list===null){S.loaded=true;clearTimeout(slow);render();return}S.projects=list;if(!fromCache){S.loaded=true;clearTimeout(slow)}render()});
-  render();
+  if(window.firebase&&window.FIREBASE_CONFIG){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    try{await firebase.firestore().enablePersistence({synchronizeTabs:true})}catch(e){console.warn("persistence",e&&e.code)}
+    FB.init();store=FB;let unsubP=null;
+    firebase.auth().onAuthStateChanged(async u=>{
+      USER=u;if(unsubP){unsubP();unsubP=null}if(S.unsubItems){S.unsubItems();S.unsubItems=null}S.pid=null;S.projects=[];S.items=[];
+      if(!u){render();return}
+      $("#main").innerHTML=`<div class="empty-state">กำลังโหลดข้อมูล…</div>`;
+      S.migrateInfo=await localInfo();unsubP=listenProjects();
+    });
+    return;
+  }
+  // no cloud config: data stays on this device only
+  store=Local;listenProjects();render();
 })();
 </script>
 </body>
