@@ -156,7 +156,7 @@ textarea{min-height:84px;resize:vertical}
 <script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="2.2";
+const APP_VER="2.3";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICO={
   gear:svgI('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
@@ -303,8 +303,18 @@ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srRec=null
 const srPart=()=>dictTarget?.closest(".fld")?.querySelector(".partial");
 function srPut(t){const input=dictTarget;t=(t||"").trim();if(!t||!input||!input.isConnected)return;const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+t}
 function srIdle(){srOn=false;document.querySelectorAll(".mic.on").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".partial").forEach(p=>p.textContent="")}
+/* TEMPORARY (v2.3): on-screen log of microphone events, to see on the iPad why the 2nd field fails */
+const srLogs=[];let srN=0;
+function srLog(m){const t=new Date();srLogs.push(String(t.getMinutes()).padStart(2,"0")+":"+String(t.getSeconds()).padStart(2,"0")+" "+m);if(srLogs.length>14)srLogs.shift();
+  let b=document.getElementById("srlog");if(!b){b=document.createElement("pre");b.id="srlog";b.style.cssText="position:fixed;left:8px;top:8px;z-index:95;max-width:60vw;margin:0;padding:6px 8px;font:12px/1.35 monospace;background:#000c;color:#9f9;border-radius:8px;white-space:pre-wrap;pointer-events:none";document.body.appendChild(b)}
+  b.textContent="ไมค์ (ชั่วคราว) v"+APP_VER+(navigator.standalone?" [หน้าจอโฮม]":" [Safari]")+"\n"+srLogs.join("\n")}
 function srNew(){
-  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;srTmp="";
+  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;srTmp="";const n=++srN;r._n=n;
+  ["audiostart","soundstart","speechstart","speechend","soundend","audioend","nomatch"].forEach(ev=>r.addEventListener(ev,()=>srLog("#"+n+" "+ev)));
+  r.addEventListener("start",()=>srLog("#"+n+" start"));
+  r.addEventListener("result",e=>{const x=e.results[e.results.length-1];srLog("#"+n+" result "+(x&&x.isFinal?"FINAL ":"")+(x?x[0].transcript:"").slice(0,20))});
+  r.addEventListener("error",e=>srLog("#"+n+" ERROR "+e.error));
+  r.addEventListener("end",()=>srLog("#"+n+" end"));
   r.onstart=()=>{if(srRec!==r)return;srLast=Date.now();const p=srPart();if(p)p.textContent="🎙 กำลังฟัง… พูดได้เลย"};
   r.onresult=e=>{if(srRec!==r)return;srLast=Date.now();let fin="",tmp="";
     for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
@@ -317,6 +327,7 @@ function srNew(){
 }
 function srStop(){if(srRec&&srOn){try{srRec.stop()}catch(e){}}}
 function srClick(btn,input){
+  srLog("กดไมค์ช่อง "+(input.id||"?")+(srOn?" (กำลังฟัง #"+(srRec&&srRec._n)+")":""));
   // a session that has heard nothing for a while is treated as dead (iPad sometimes never sends "end")
   if(srOn&&srRec&&Date.now()-srLast>8000){const old=srRec;srRec=null;try{old.abort()}catch(e){}srIdle()}
   if(srOn&&srRec){
@@ -327,7 +338,7 @@ function srClick(btn,input){
   }
   dictBtn=btn;dictTarget=input;btn.classList.add("on");
   const r=srNew();srRec=r;srLast=Date.now();
-  try{r.start();srOn=true}catch(e){srRec=null;btn.classList.remove("on");input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}
+  try{r.start();srOn=true;srLog("#"+r._n+" start() ok")}catch(e){srLog("#"+r._n+" start() THROW "+(e&&e.name)+" "+(e&&e.message||"").slice(0,40));srRec=null;btn.classList.remove("on");input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}
 }
 function micClick(btn){
   const input=btn.parentElement.querySelector("input,textarea");
