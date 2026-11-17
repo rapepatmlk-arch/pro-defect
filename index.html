@@ -156,7 +156,7 @@ textarea{min-height:84px;resize:vertical}
 <script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="2.1";
+const APP_VER="2.2";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICO={
   gear:svgI('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
@@ -293,31 +293,41 @@ function setupDict(){
   dict.onPartial(({text})=>{const p=dictTarget?.closest(".fld")?.querySelector(".partial");if(p)p.textContent=text?"🎙 "+text:""});
   dict.onState(({state})=>{dictOn=state==="listening";document.querySelectorAll(".mic").forEach(b=>b.classList.toggle("on",dictOn&&b===dictBtn));if(!dictOn){document.querySelectorAll(".partial").forEach(p=>p.textContent="")}});
 }
-/* iPad Safari: a second `new SpeechRecognition()` on the same page often never hears anything,
-   so ONE recognizer is reused for every field. Tapping another field's mic while listening just
-   moves the target field; tapping the same mic again stops. */
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srRec=null,srOn=false;
+/* Dictation on iPad Safari:
+   - a recognizer that has ended cannot be started again, so every new listening session gets a
+     FRESH recognizer, created inside the tap;
+   - starting a new one while the old one is still alive fails silently, so tapping another field's
+     mic while still listening just moves the target field; tapping the same mic again stops;
+   - iPad sometimes ends without marking text "final", so the last heard text is kept on end. */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srRec=null,srOn=false,srTmp="",srLast=0;
 const srPart=()=>dictTarget?.closest(".fld")?.querySelector(".partial");
+function srPut(t){const input=dictTarget;t=(t||"").trim();if(!t||!input||!input.isConnected)return;const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+t}
 function srIdle(){srOn=false;document.querySelectorAll(".mic.on").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".partial").forEach(p=>p.textContent="")}
-function srGet(){
-  if(srRec)return srRec;const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;
-  r.onresult=e=>{const input=dictTarget;if(!input||!input.isConnected)return;let fin="",tmp="";
+function srNew(){
+  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;srTmp="";
+  r.onstart=()=>{if(srRec!==r)return;srLast=Date.now();const p=srPart();if(p)p.textContent="🎙 กำลังฟัง… พูดได้เลย"};
+  r.onresult=e=>{if(srRec!==r)return;srLast=Date.now();let fin="",tmp="";
     for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
-    const part=srPart();if(part)part.textContent=tmp?"🎙 "+tmp:"";if(fin){const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+fin.trim()}};
-  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500)};
-  r.onend=srIdle;return srRec=r;
+    srTmp=tmp;const part=srPart();if(part)part.textContent=tmp?"🎙 "+tmp:"🎙 กำลังฟัง…";if(fin)srPut(fin)};
+  r.onerror=e=>{if(srRec!==r)return;const c=e.error;
+    if(c==="not-allowed"||c==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500);
+    else if(c!=="no-speech"&&c!=="aborted")toast("ฟังเสียงไม่สำเร็จ ("+c+") — ลองกดไมค์อีกครั้ง",3000)};
+  r.onend=()=>{if(srRec!==r)return;if(srTmp)srPut(srTmp);srTmp="";srRec=null;srIdle()};
+  return r;
 }
 function srStop(){if(srRec&&srOn){try{srRec.stop()}catch(e){}}}
 function srClick(btn,input){
-  const r=srGet();
-  if(srOn){
+  // a session that has heard nothing for a while is treated as dead (iPad sometimes never sends "end")
+  if(srOn&&srRec&&Date.now()-srLast>8000){const old=srRec;srRec=null;try{old.abort()}catch(e){}srIdle()}
+  if(srOn&&srRec){
     if(dictBtn===btn){srStop();return}
+    if(srTmp){srPut(srTmp);srTmp=""}
     if(dictBtn)dictBtn.classList.remove("on");const op=srPart();if(op)op.textContent="";
-    dictBtn=btn;dictTarget=input;btn.classList.add("on");return;
+    dictBtn=btn;dictTarget=input;btn.classList.add("on");const p=srPart();if(p)p.textContent="🎙 กำลังฟัง… พูดได้เลย";return;
   }
   dictBtn=btn;dictTarget=input;btn.classList.add("on");
-  const go=()=>{r.start();srOn=true};
-  try{go()}catch(e){setTimeout(()=>{try{go()}catch(_){btn.classList.remove("on");input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}},400)}
+  const r=srNew();srRec=r;srLast=Date.now();
+  try{r.start();srOn=true}catch(e){srRec=null;btn.classList.remove("on");input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}
 }
 function micClick(btn){
   const input=btn.parentElement.querySelector("input,textarea");
