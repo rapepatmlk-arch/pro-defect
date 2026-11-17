@@ -156,7 +156,7 @@ textarea{min-height:84px;resize:vertical}
 <script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="2.4";
+const APP_VER="2.5";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICO={
   gear:svgI('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
@@ -312,18 +312,8 @@ function srAim(btn,input){ // point the running session at a field (null = pause
   if(btn){btn.classList.add("on");const p=srPart();if(p)p.textContent="🎙 กำลังฟัง… พูดได้เลย"}
 }
 function srIdle(){srOn=false;srRec=null;srAim(null,null)}
-/* TEMPORARY: on-screen log of microphone events, to check the fix on the iPad */
-const srLogs=[];let srN=0;
-function srLog(m){const t=new Date();srLogs.push(String(t.getMinutes()).padStart(2,"0")+":"+String(t.getSeconds()).padStart(2,"0")+" "+m);if(srLogs.length>14)srLogs.shift();
-  let b=document.getElementById("srlog");if(!b){b=document.createElement("pre");b.id="srlog";b.style.cssText="position:fixed;left:8px;top:8px;z-index:95;max-width:60vw;margin:0;padding:6px 8px;font:12px/1.35 monospace;background:#000c;color:#9f9;border-radius:8px;white-space:pre-wrap;pointer-events:none";document.body.appendChild(b)}
-  b.textContent="ไมค์ (ชั่วคราว) v"+APP_VER+(navigator.standalone?" [หน้าจอโฮม]":" [Safari]")+"\n"+srLogs.join("\n")}
 function srNew(){
-  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=true;const n=++srN;r._n=n;
-  ["audiostart","speechstart","speechend","audioend","nomatch"].forEach(ev=>r.addEventListener(ev,()=>srLog("#"+n+" "+ev)));
-  r.addEventListener("start",()=>srLog("#"+n+" start"));
-  r.addEventListener("result",e=>{const x=e.results[e.results.length-1];srLog("#"+n+" result "+(x&&x.isFinal?"FINAL ":"")+(x?x[0].transcript:"").slice(-18))});
-  r.addEventListener("error",e=>srLog("#"+n+" ERROR "+e.error));
-  r.addEventListener("end",()=>srLog("#"+n+" end"));
+  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=true;
   r.onresult=e=>{if(srRec!==r)return;srFull=srAll(e);if(dictTarget)srWrite()};
   r.onerror=e=>{if(srRec!==r)return;const c=e.error;
     if(c==="not-allowed"||c==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500);
@@ -333,10 +323,9 @@ function srNew(){
 }
 function srStop(){if(srOn)srAim(null,null)} // pause only: a new session would not hear anything on iPad
 function srClick(btn,input){
-  srLog("กดไมค์ช่อง "+(input.id||"?")+(srOn?" (ฟังอยู่ #"+(srRec&&srRec._n)+")":""));
-  if(srOn&&srRec){if(dictBtn===btn){srAim(null,null);srLog("พัก");return}srAim(btn,input);return}
+  if(srOn&&srRec){if(dictBtn===btn){srAim(null,null);return}srAim(btn,input);return}
   srFull="";srUsed=0;const r=srNew();srRec=r;srAim(btn,input);
-  try{r.start();srOn=true;srLog("#"+r._n+" start() ok")}catch(e){srLog("#"+r._n+" start() THROW "+(e&&e.name));srIdle();input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}
+  try{r.start();srOn=true}catch(e){srIdle();input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}
 }
 function micClick(btn){
   const input=btn.parentElement.querySelector("input,textarea");
