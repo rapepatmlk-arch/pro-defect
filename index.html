@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Defect">
+<link rel="apple-touch-icon" href="logo.jpg">
+<link rel="icon" href="logo.jpg">
 <meta http-equiv="Cache-Control" content="no-cache">
 <title>Defect Report – PRO-CON</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -153,7 +156,7 @@ textarea{min-height:84px;resize:vertical}
 <script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="2.0";
+const APP_VER="2.1";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICO={
   gear:svgI('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
@@ -290,16 +293,31 @@ function setupDict(){
   dict.onPartial(({text})=>{const p=dictTarget?.closest(".fld")?.querySelector(".partial");if(p)p.textContent=text?"🎙 "+text:""});
   dict.onState(({state})=>{dictOn=state==="listening";document.querySelectorAll(".mic").forEach(b=>b.classList.toggle("on",dictOn&&b===dictBtn));if(!dictOn){document.querySelectorAll(".partial").forEach(p=>p.textContent="")}});
 }
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srObj=null;
+/* iPad Safari: a second `new SpeechRecognition()` on the same page often never hears anything,
+   so ONE recognizer is reused for every field. Tapping another field's mic while listening just
+   moves the target field; tapping the same mic again stops. */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srRec=null,srOn=false;
+const srPart=()=>dictTarget?.closest(".fld")?.querySelector(".partial");
+function srIdle(){srOn=false;document.querySelectorAll(".mic.on").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".partial").forEach(p=>p.textContent="")}
+function srGet(){
+  if(srRec)return srRec;const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;
+  r.onresult=e=>{const input=dictTarget;if(!input||!input.isConnected)return;let fin="",tmp="";
+    for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
+    const part=srPart();if(part)part.textContent=tmp?"🎙 "+tmp:"";if(fin){const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+fin.trim()}};
+  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500)};
+  r.onend=srIdle;return srRec=r;
+}
+function srStop(){if(srRec&&srOn){try{srRec.stop()}catch(e){}}}
 function srClick(btn,input){
-  if(srObj){try{srObj.stop()}catch(e){}if(dictBtn===btn)return}
-  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;srObj=r;dictBtn=btn;dictTarget=input;
-  const part=input.closest(".fld")?.querySelector(".partial");btn.classList.add("on");
-  r.onresult=e=>{let fin="",tmp="";for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
-    if(part)part.textContent=tmp?"🎙 "+tmp:"";if(fin){const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+fin.trim()}};
-  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500)}};
-  r.onend=()=>{btn.classList.remove("on");if(part)part.textContent="";if(srObj===r)srObj=null};
-  try{r.start()}catch(e){btn.classList.remove("on");srObj=null;input.focus()}
+  const r=srGet();
+  if(srOn){
+    if(dictBtn===btn){srStop();return}
+    if(dictBtn)dictBtn.classList.remove("on");const op=srPart();if(op)op.textContent="";
+    dictBtn=btn;dictTarget=input;btn.classList.add("on");return;
+  }
+  dictBtn=btn;dictTarget=input;btn.classList.add("on");
+  const go=()=>{r.start();srOn=true};
+  try{go()}catch(e){setTimeout(()=>{try{go()}catch(_){btn.classList.remove("on");input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}},400)}
 }
 function micClick(btn){
   const input=btn.parentElement.querySelector("input,textarea");
@@ -320,7 +338,7 @@ function openSheet(html,onMount){
   ov.addEventListener("click",e=>{if(e.target===ov)closeSheet()});
   $("#layer").appendChild(ov);onMount&&onMount(ov.firstChild);hydrate(ov);return ov.firstChild;
 }
-function closeSheet(){if(dict&&dictOn)dict.stop().catch(()=>{});$("#layer").innerHTML=""}
+function closeSheet(){if(dict&&dictOn)dict.stop().catch(()=>{});srStop();$("#layer").innerHTML=""}
 function ask(msg,yes="ยืนยัน"){return new Promise(res=>{const ov=document.createElement("div");ov.className="ov";ov.style.zIndex=70;ov.innerHTML=`<div class="sheet" style="max-width:440px"><h2>ยืนยัน</h2><p>${esc(msg)}</p><div class="acts"><span class="sp"></span><button class="btn" data-a="0">ยกเลิก</button><button class="btn del" data-a="1">${esc(yes)}</button></div></div>`;ov.onclick=e=>{const a=e.target.dataset.a;if(a!==undefined||e.target===ov){ov.remove();res(a==="1")}};document.body.appendChild(ov)})}
 
 /* ---------------- views ---------------- */
